@@ -75,6 +75,44 @@ public class ConnectGUI extends JFrame {
         btnJoinAHub.setBounds(308, 46, 124, 51);
         contentPane.add(btnJoinAHub);
     }
+    
+    private void startHub(){
+        String username = JOptionPane.showInputDialog("Please enter your name:");
+        String address = "";
+        try {
+			address = InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			JOptionPane.showMessageDialog(null, "An error has occurred. Please restart the program and try again.");
+			System.exit(1);
+		}
+        
+        if(username.equals("")){
+			 JOptionPane.showMessageDialog(null, "Please do not leave anything blank.");
+			 return;
+		 }
+        
+        Server server = new Server(6400);
+		Thread serverThread = new Thread(server);
+		serverThread.start();
+
+        new Client(username, address);
+        
+            dispose();
+	}
+    	private void joinHub(){
+		 String username = JOptionPane.showInputDialog("Please enter your name:");
+		 String address = JOptionPane.showInputDialog("Please enter a hub address:");
+		 
+		 if(username.equals("") || address.equals("")){
+			 JOptionPane.showMessageDialog(null, "Please do not leave anything blank.");
+			 return;
+		 }
+        
+	     new Client(username, address);
+
+	     dispose();
+	}
 
 
 }
