@@ -111,10 +111,5 @@ public class ConnectGUI extends JFrame {
 	     dispose();
 	}
 
-    private void startHub() {
-    }
-
-    private void joinHub() {
-
-    }
+   
 }
