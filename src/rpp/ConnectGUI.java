@@ -12,10 +12,7 @@ import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 
-/**
- *
- * @author shafayat
- */
+
 public class ConnectGUI extends JFrame {
 
     private static final long serialVersionUID = 1L;
@@ -76,5 +73,10 @@ public class ConnectGUI extends JFrame {
         contentPane.add(btnJoinAHub);
     }
 
+    private void startHub() {
+    }
 
+    private void joinHub() {
+
+    }
 }
