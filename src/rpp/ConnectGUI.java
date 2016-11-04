@@ -44,7 +44,7 @@ public class ConnectGUI extends JFrame {
             e.printStackTrace();
         }
 
-        setTitle("CodeTogether");
+        setTitle("R++");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 541, 204);
         contentPane = new JPanel();
