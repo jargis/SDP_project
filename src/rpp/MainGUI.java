@@ -156,7 +156,7 @@ public class MainGUI extends JFrame {
             }
         });
 
-        setTitle("CodeTogether");
+        setTitle("R++");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBounds(100, 100, 850, 544);
 
