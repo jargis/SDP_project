@@ -5,10 +5,7 @@
  */
 package rpp;
 
-/**
- *
- * @author shafayat
- */
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;

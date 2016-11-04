@@ -62,10 +62,6 @@ import javax.swing.undo.UndoManager;
 
 import jsyntaxpane.syntaxkits.*;
 
-/**
- *
- * @author shafayat
- */
 public class MainGUI extends JFrame {
 
     //initializer
