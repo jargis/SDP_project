@@ -5,16 +5,23 @@
  */
 package rpp;
 
+import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.text.BadLocationException;
 
 /**
  *
@@ -22,8 +29,8 @@ import javax.swing.JOptionPane;
  */
 public class Client {
 
-	public BufferedReader br = null;
-	public PrintStream outputStream = null;
+	public ObjectInputStream br = null;
+	public ObjectOutputStream outputStream = null;
 	
 	public Socket socket;
 	public InetAddress ip;
@@ -31,37 +38,44 @@ public class Client {
 	public Thread listenThread, sendThread;
 	public volatile boolean running = false;
 	
-	public ArrayList<String> users;
+	public ArrayList<message> users;
 	
 	public String username;
 	public String address;
 	
 	private MainGUI gui;
+	Random randomGenerator;
+        Color randomColour;
 	
-	public Client(String username, String address){
+	public Client(String username, String address) throws IOException, BadLocationException{
 		this.username = username;
 		this.address = address;
+                randomGenerator = new Random();
+                int red = randomGenerator.nextInt(245);
+                int green = randomGenerator.nextInt(245);
+                int blue = randomGenerator.nextInt(245);
 
+                randomColour = new Color(red,green,blue);
+                
 		gui = new MainGUI(this);
 		
-		users = new ArrayList<String>();
+		users = new ArrayList<message>();
 		
 		boolean connection = openConnection(address, 6400);
 
 		if(connection){
 			try {
-				br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-				outputStream = new PrintStream(socket.getOutputStream());
+				 
+				outputStream = new  ObjectOutputStream(socket.getOutputStream());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 			running = true;
 			
-			send(username); //Sends the username to the server	
-			
+			send(new message("username",username,randomColour)); //Sends the username to the server	
+			br = new ObjectInputStream(socket.getInputStream()); 
 			receive();
-			
-	        gui.setVisible(true);
+			 gui.setVisible(true);
 	        
 	        
 		}else{
@@ -80,82 +94,55 @@ public class Client {
 		return true;
 	}
 	
-	public void send(final String message){
-		sendThread = new Thread("send"){
-			public void run(){
-				outputStream.print(message);
-				outputStream.write(0x00);
-				outputStream.flush();
-			}
-		};
-		sendThread.start();
+	synchronized public void send(message message) throws BadLocationException, IOException{
+		   outputStream.writeObject(message);
+                   outputStream.flush();
+                   outputStream.reset();
 	}
 	
 	public void receive(){
 		listenThread = new Thread("listen"){
 			public void run(){
+                                 message mes;
 				while(running){
-					String s = "";
-					s = readUntilNull(br);
-					
-					if(s != null && s != ""){
-						
-						if(getMessageType(s).equals("userlist")) {
-							getUserList(s);
-						}else if(getMessageType(s).equals("command")){
-							if(s.startsWith("/disconnect")){
-								disconnect();
-							}else if(s.startsWith("/server")){
-								JOptionPane.showMessageDialog(null, s.substring(7), "Server", JOptionPane.INFORMATION_MESSAGE);
-							}
-						}
-                                                else{
-                                                    if(s.startsWith("chat"))
-                                                        gui.setchat(s.substring(4));
-                                                     else
-                                                     gui.setSourceCode(s);
-                                                }
-                                                }
+                                     try {
+                                         if((mes = (message) br.readObject()) != null){
+                                             if(mes.type.equals("userlist")) {
+                                                 getUserList(mes);
+                                             }else if(mes.type==null && getMessageType(mes.message).equals("command")){
+                                                 if(mes.message.startsWith("/disconnect")){
+                                                     disconnect();
+                                                 }else if(mes.message.startsWith("/server")){
+                                                     JOptionPane.showMessageDialog(null, mes.message.substring(7), "Server", JOptionPane.INFORMATION_MESSAGE);
+                                                 }
+                                             }else{
+                                                 if(mes.type.equals("chat"))
+                                                     gui.setchat(mes.message);
+                                                 else
+                                                     gui.setSourceCode(mes.doc);
+                                             }
+                                         }
+                                     } catch (IOException ex) {
+                                         Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                                     } catch (ClassNotFoundException ex) {
+                                         Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                                     } catch (BadLocationException ex) {
+                                         Logger.getLogger(Client.class.getName()).log(Level.SEVERE, null, ex);
+                                     }
 				}
 			}
 		};
 		listenThread.start();
 	}
         
-        public static String readUntilNull(BufferedReader reader){
-		StringBuilder sb = new StringBuilder();
-		String message = "";
-		try {
-			int ch;
-			while ((ch = reader.read()) != -1) {
-				if (ch == 0) {
-					message = sb.toString();
-					break;
-				} else if(ch == 10){
-					sb.append("\n");
-				} else {
-					sb.append((char) ch);
-				}
-			}
-		} catch (InterruptedIOException ex) {
-			System.err.println("timeout!");
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return message;
-	}
+      
 	
-	private void getUserList(String str){ //decodes string containing users and adds it to users array list
-		if(!str.startsWith("|") || !str.endsWith("|") || str.equals("|") || str.equals(null)) return;
-		String s = str.substring(1, str.length() - 1); //eg: from "|user1|user2|user3|" to "user1|user2|user3"
-		String[] arr = s.split("\\|"); //eg: from "user1|user2|user3" to "user1", "user2", "user3"
-		users.clear();
-		for(String usr : arr){
-			users.add(usr); //adds each string in the array to the users array list
-		}
-		
-		for(int i = 0; i < users.size(); i++){
-			gui.mnConnectedUsers.add(new JMenuItem(users.get(i)));
+	private void getUserList(message m){ //decodes string containing users and adds it to users array list
+		users=m.clients;
+		for(int i = 0; i < m.clients.size(); i++){
+                   JMenuItem mi= new JMenuItem(m.clients.get(i).username);
+                    mi.setForeground(m.clients.get(i).color);
+			gui.mnConnectedUsers.add(mi);
 		}
 		
 		gui.mnConnectedUsers.revalidate();
