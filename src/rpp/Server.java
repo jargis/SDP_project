@@ -53,7 +53,7 @@ public class Server implements Runnable{
 				}
 				if(n == MAXCLIENTS-1){
 					PrintStream outputStream = new PrintStream(client.getOutputStream());
-					outputStream.println("/server Server is full (MAX " + MAXCLIENTS+1 + " clients). Please try again later.");
+					outputStream.println(new message("/server Server is full (MAX " + MAXCLIENTS+1 + " clients). Please try again later."));
 					outputStream.close();
 					client.close();
 					serverSocket.close();
