@@ -3,14 +3,18 @@ package rpp;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
+import javax.swing.text.BadLocationException;
 
 
 public class ConnectGUI extends JFrame {
@@ -56,7 +60,13 @@ public class ConnectGUI extends JFrame {
         JButton btnStartAHub = new JButton("Start a hub");
         btnStartAHub.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
-                startHub();
+                try {
+                    startHub();
+                } catch (IOException ex) {
+                    Logger.getLogger(ConnectGUI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (BadLocationException ex) {
+                    Logger.getLogger(ConnectGUI.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
         //JOIN A HUB BUTTON SETUP
@@ -66,14 +76,20 @@ public class ConnectGUI extends JFrame {
         JButton btnJoinAHub = new JButton("Join a hub");
         btnJoinAHub.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent arg0) {
-                joinHub();
+                try {
+                    joinHub();
+                } catch (IOException ex) {
+                    Logger.getLogger(ConnectGUI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (BadLocationException ex) {
+                    Logger.getLogger(ConnectGUI.class.getName()).log(Level.SEVERE, null, ex);
+                }
             }
         });
         btnJoinAHub.setBounds(308, 46, 124, 51);
         contentPane.add(btnJoinAHub);
     }
     
-    private void startHub(){
+    private void startHub() throws IOException, BadLocationException{
         String username = JOptionPane.showInputDialog("Please enter your name:");
         String address = "";
         try {
@@ -97,7 +113,7 @@ public class ConnectGUI extends JFrame {
         
             dispose();
 	}
-    	private void joinHub(){
+    	private void joinHub() throws IOException, BadLocationException{
 		 String username = JOptionPane.showInputDialog("Please enter your name:");
 		 String address = JOptionPane.showInputDialog("Please enter a hub address:");
 		 
