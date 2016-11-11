@@ -48,6 +48,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JTextPane;
 import javax.swing.JToolBar;
 import javax.swing.KeyStroke;
 import javax.swing.UIManager;
@@ -56,6 +57,9 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
@@ -63,43 +67,39 @@ import javax.swing.undo.UndoManager;
 import jsyntaxpane.syntaxkits.*;
 
 public class MainGUI extends JFrame {
-
-    //initializer
-    StringBuffer sbufer;
-    String findString;
-    int ind = 0;
-    Client client;
-    //undo/redo object initializer
-    UndoManager undo = new UndoManager();
-    //UndoAction undoAction = new UndoAction();
-    //RedoAction redoAction = new RedoAction();
-
-    private static final long serialVersionUID = 1L;
-    private JPanel contentPane;
-    private JTextField txtAddress;
-    private JTextArea chat;
-    private JTextArea agerchat;
-    private JButton send;
-    private JEditorPane textPane;
-    private JMenu mnFile;
-    private JMenu mnEdit;
-    private JMenu mnFormat;
-    private JMenu mnLanguages;
-    private JMenuBar menuBar;
-    public JMenu mnConnectedUsers;
-    //FONT object 
-    fontSelector fontS = new fontSelector();
-
-    //private static final Action New = null;
-    private JFileChooser dialog = new JFileChooser(System.getProperty("user.dir"));
-    private String currentFile = "Untitled";
-    private boolean changed = false;
-
-    ActionMap m = null;
-    Action Cut = null;
-    Action Copy = null;
-    Action Paste = null;
-
+	private static final long serialVersionUID = 1L;
+	private JPanel contentPane;
+	private JTextField txtAddress;
+        private JTextArea chat;
+        private JTextArea agerchat;
+        private JButton send;
+	private JTextPane textPane;
+	private JMenu mnFile;
+	private JMenu mnEdit;
+	private JMenu mnLanguages;
+        public JMenu mnFormat;
+	public JMenuBar menuBar;
+	public JMenu mnConnectedUsers;
+        public StringBuffer sbufer;
+        private int keypress;
+        int ind = 0;
+	
+        fontSelector fontS = new fontSelector();
+	private static final Action New = null;
+	private JFileChooser dialog = new JFileChooser(System.getProperty("user.dir"));
+	private String currentFile = "Untitled";
+	private boolean changed = false;
+        
+        
+        String findString;
+	
+	ActionMap m = null;
+	Action Cut = null;
+	Action Copy = null;
+	Action Paste = null;
+        boolean value=false;
+        Client client;
+	
     /**
      * Create the frame.
      */
@@ -111,25 +111,57 @@ public class MainGUI extends JFrame {
             e.printStackTrace();
         }
 
-        textPane = new JEditorPane();
+       textPane = new JTextPane();
         textPane.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyReleased(KeyEvent e) {
-                Document doc = textPane.getDocument();
+                    public void keyReleased(KeyEvent e) {
+                               
+                                StyledDocument doc =  textPane.getStyledDocument();
+                        
+                                SimpleAttributeSet set = new SimpleAttributeSet();
+                                StyleConstants.setForeground(set, client.randomColour);
+                                //System.out.println(textPane.getCaretPosition());
+                                int val=textPane.getCaretPosition()-1;
+                                if(val<0)
+                                    val=0;
+                                
+                                doc.setCharacterAttributes(val,1 , set,true);
+                               value=false;
+                               
                 try {
-                    client.send(doc.getText(0, doc.getLength()));
-                } catch (BadLocationException e1) {
-                    e1.printStackTrace();
+                    client.send(new message("text",doc));
+                } catch (BadLocationException ex) {
+                    Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
                 }
-            }
+                            
+                               
+			}
+                        
+			public void keyPressed(KeyEvent e) {
+                          
+                          StyledDocument doc = textPane.getStyledDocument();
+                        
+                                SimpleAttributeSet set = new SimpleAttributeSet();
+                                StyleConstants.setForeground(set, client.randomColour);
+                               // System.out.println(textPane.getCaretPosition());
+                               int val=textPane.getCaretPosition()-1;
+                               if(val<0)
+                                   val=0;
+                               if(value){
+                                doc.setCharacterAttributes(val,1 , set,true);
+                               }
+                               value=true;
+				changed = true;
+				Save.setEnabled(true);
+				SaveAs.setEnabled(true);
+                            
 
-            public void keyPressed(KeyEvent e) {
-                changed = true;
-                Save.setEnabled(true);
-                SaveAs.setEnabled(true);
+			}
 
-            }
-        });
+                      
+		});
 
         m = textPane.getActionMap();
         Cut = m.get(DefaultEditorKit.cutAction);
@@ -144,7 +176,7 @@ public class MainGUI extends JFrame {
                     client.listenThread.interrupt();
                     client.sendThread.interrupt();
                     if (client.outputStream != null && client.br != null && client.socket != null) {
-                        client.outputStream.println("/disconnect");
+                        client.outputStream.writeObject(new message("/disconnect"));
                         client.outputStream.close();
                         client.br.close();
                         client.socket.close();
@@ -350,7 +382,13 @@ public class MainGUI extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String in = chat.getText();
-                client.send("chat" + client.username + " :" + in);
+                try {
+                    client.send(new message("chat",client.username,client.username+": "+in));
+                } catch (BadLocationException ex) {
+                    Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (IOException ex) {
+                    Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 String newmsg = agerchat.getText() + "\n" + client.username + " :" + in;
                 agerchat.setText(newmsg);
                 chat.setText("");
@@ -373,10 +411,15 @@ public class MainGUI extends JFrame {
         jp.add(jp2);
         contentPane.add(jp, BorderLayout.EAST);
         send.addActionListener((ActionEvent ae) -> {
-            String in = chat.getText();
-
-            client.send("chat" + client.username + ": " + in);
-            String newmsg = agerchat.getText() + "\n" + client.username + ": " + in;
+           String in=chat.getText();
+            try {
+                client.send(new message("chat",client.username,client.username+": "+in));
+            } catch (BadLocationException ex) {
+                Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
+            }
+                    String newmsg=agerchat.getText()+"\n"+client.username+": "+in;
             agerchat.setText(newmsg);
             chat.setText("");
         });
@@ -385,7 +428,7 @@ public class MainGUI extends JFrame {
         //textPane.setContentType("text/c");
     }
 
-    Action New = new AbstractAction("New", new ImageIcon("New.gif")) {
+    Action New1 = new AbstractAction("New", new ImageIcon("New.gif")) {
         private static final long serialVersionUID = 1L;
 
         public void actionPerformed(ActionEvent e) {
@@ -509,7 +552,7 @@ public class MainGUI extends JFrame {
                 Logger.getLogger(MainGUI.class.getName()).log(Level.SEVERE, null, ex);
             }
             //force sending to all other client
-            forceSendToAll();
+            //forceSendToAll();
 
         }
     };
@@ -762,11 +805,13 @@ public class MainGUI extends JFrame {
         }
     }
 
-    public void setSourceCode(String code) {
-        textPane.setText(code);
-    }
+        public void setSourceCode(StyledDocument code) throws BadLocationException{
+            //System.out.println("djk");
+		textPane.setStyledDocument(code);     
+               
+	}
 
-    public void forceSendToAll() {
+   /* public void forceSendToAll() {
         Document doc = textPane.getDocument();
         try {
             client.send(doc.getText(0, doc.getLength()));
@@ -774,7 +819,7 @@ public class MainGUI extends JFrame {
             e1.printStackTrace();
         }
     }
-
+*/
     public void setchat(String msg) {
         String newmsg = agerchat.getText() + "\n" + msg;
         agerchat.setText(newmsg);
